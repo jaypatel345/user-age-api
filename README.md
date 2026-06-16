@@ -1,104 +1,93 @@
 # user-age-api
 
-A small Go REST API for storing users with their date of birth in PostgreSQL. The API uses Fiber for HTTP routing, sqlc for generated database queries, and a simple handler/service/repository structure.
+A Go REST API for storing users and calculating their age from date of birth. The project uses Fiber, PostgreSQL, sqlc, and a handler/service/repository structure.
 
-## Features
+## Setup Steps
 
-- Create a user with name and date of birth
-- List all users with calculated age
-- Get one user by ID with calculated age
-- Update a user
-- Delete a user
-- Load database configuration from `.env`
+1. Clone the repository and go into the project folder:
 
-## Tech Stack
-
-- Go
-- Fiber
-- PostgreSQL
-- sqlc
-- lib/pq PostgreSQL driver
-- godotenv
-
-## Project Structure
-
-```text
-cmd/server/main.go              # App entrypoint
-db/migrations/                  # Database migrations
-db/queries/                     # sqlc SQL queries
-db/sqlc/                        # Generated sqlc code
-internal/handler/               # HTTP handlers
-internal/routes/                # Fiber routes
-internal/service/               # Business logic
-internal/repository/            # Database access wrapper
-internal/models/                # Response models
+```bash
+git clone https://github.com/jaypatel345/user-age-api.git
+cd user-age-api
 ```
 
-## Database Setup
+2. Install Go dependencies:
 
-Create the PostgreSQL database:
+```bash
+go mod tidy
+```
+
+3. Create the PostgreSQL database:
 
 ```bash
 createdb user_age_db
 ```
 
-Run the migration:
+4. Run the database migration:
 
 ```bash
 psql user_age_db -f db/migrations/001_create_users.sql
 ```
 
-The migration creates this table:
+5. Create a `.env` file from the example:
 
-```sql
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    dob DATE NOT NULL
-);
+```bash
+cp .env.example .env
 ```
 
-## Environment Setup
+6. Update `.env` if your local PostgreSQL connection is different.
 
-Create a `.env` file in the project root:
+## How To Run
 
-```env
-DATABASE_URL=postgres://localhost:5432/user_age_db?sslmode=disable
-```
-
-If your PostgreSQL setup needs a username and password:
-
-```env
-DATABASE_URL=postgres://username:password@localhost:5432/user_age_db?sslmode=disable
-```
-
-`.env` is ignored by Git, so local secrets should not be pushed to GitHub.
-
-## Run The Server
+Start the API server:
 
 ```bash
 go run ./cmd/server
 ```
 
-The server starts on:
+The server runs at:
 
 ```text
 http://localhost:8080
 ```
 
-## API Routes
+Run tests:
 
-```text
-POST    /users
-GET     /users
-GET     /users/:id
-PUT     /users/:id
-DELETE  /users/:id
+```bash
+go test ./...
 ```
 
-## Test With Postman
+Regenerate sqlc code after SQL changes:
 
-Use this header for requests with JSON bodies:
+```bash
+sqlc generate
+```
+
+## Env Variables
+
+Create a `.env` file in the project root.
+
+```env
+DATABASE_URL=postgres://localhost:5432/user_age_db?sslmode=disable
+```
+
+If your PostgreSQL setup uses username and password:
+
+```env
+DATABASE_URL=postgres://username:password@localhost:5432/user_age_db?sslmode=disable
+```
+
+`.env` is ignored by Git. Keep real local database credentials there, and commit only `.env.example`.
+
+## API Docs
+
+Base URL:
+
+```text
+http://localhost:8080
+```
+
+For requests with JSON bodies, use:
 
 ```text
 Content-Type: application/json
@@ -107,10 +96,10 @@ Content-Type: application/json
 ### Create User
 
 ```http
-POST http://localhost:8080/users
+POST /users
 ```
 
-Body:
+Request body:
 
 ```json
 {
@@ -132,7 +121,7 @@ Example response:
 ### List Users
 
 ```http
-GET http://localhost:8080/users
+GET /users
 ```
 
 Example response:
@@ -151,7 +140,7 @@ Example response:
 ### Get User By ID
 
 ```http
-GET http://localhost:8080/users/1
+GET /users/1
 ```
 
 Example response:
@@ -168,10 +157,10 @@ Example response:
 ### Update User
 
 ```http
-PUT http://localhost:8080/users/1
+PUT /users/1
 ```
 
-Body:
+Request body:
 
 ```json
 {
@@ -193,21 +182,13 @@ Example response:
 ### Delete User
 
 ```http
-DELETE http://localhost:8080/users/1
+DELETE /users/1
 ```
 
 Expected response:
 
 ```text
 204 No Content
-```
-
-## Regenerate sqlc Code
-
-If you change SQL files in `db/queries` or migrations used by sqlc, regenerate code with:
-
-```bash
-sqlc generate
 ```
 
 ## Common Errors
@@ -218,7 +199,7 @@ The `.env` file is missing or does not contain `DATABASE_URL`.
 
 `pq: role "username" does not exist`
 
-Your database URL uses a PostgreSQL username that does not exist locally. Use your local PostgreSQL role or use the no-password local URL if your setup allows it.
+The database URL uses a PostgreSQL username that does not exist locally.
 
 `sql: no rows in result set`
 
