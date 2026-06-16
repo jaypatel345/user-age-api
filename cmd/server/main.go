@@ -11,11 +11,18 @@ import (
 	"github.com/jaypatel/user-age-api/internal/repository"
 	"github.com/jaypatel/user-age-api/internal/routes"
 	"github.com/jaypatel/user-age-api/internal/service"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
 	databaseURL := os.Getenv("DATABASE_URL")
+
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
 	}

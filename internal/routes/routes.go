@@ -6,8 +6,10 @@ import (
 )
 
 func SetupRoutes(app *fiber.App, userHandler *handler.UserHandler) {
-	app.Post("/users", userHandler.CreateUser)
-	app.Get("/users", userHandler.ListUsers)
-	app.Get("/users/:id", userHandler.GetUserByID)
-	app.Delete("/users/:id", userHandler.DeleteUser)
+	user := app.Group("/users")
+	user.Post("/", userHandler.CreateUser)
+	user.Get("/", userHandler.ListUsers)
+	user.Get("/:id", userHandler.GetUserByID)
+	user.Put("/:id", userHandler.UpdateUser)
+	user.Delete("/:id", userHandler.DeleteUser)
 }
