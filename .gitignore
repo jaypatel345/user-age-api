@@ -1,0 +1,26 @@
+# Go build/test output
+.gocache/
+bin/
+dist/
+build/
+*.test
+*.out
+coverage.out
+
+# Local environment/config
+.env
+.env.*
+!.env.example
+
+# Local databases and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
