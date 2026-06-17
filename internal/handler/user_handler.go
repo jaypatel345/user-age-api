@@ -6,7 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	db "github.com/jaypatel/user-age-api/db/sqlc"
+	"github.com/jaypatel/user-age-api/internal/logger"
 	"github.com/jaypatel/user-age-api/internal/service"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
@@ -27,11 +29,13 @@ type createUserRequest struct {
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	var req createUserRequest
 	if err := c.BodyParser(&req); err != nil {
+		logger.Logger.Warn("Invalid create user request body", zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	dob, err := time.Parse("2006-01-02", req.DOB)
 	if err != nil {
+		logger.Logger.Warn("Invalid create user DOB", zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "dob must be in YYYY-MM-DD format"})
 	}
 
@@ -40,48 +44,58 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		Dob:  dob,
 	})
 	if err != nil {
+		logger.Logger.Error("Failed to create user", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	logger.Logger.Info("User created", zap.Int32("id", user.ID))
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
 
 func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	users, err := h.service.ListUsers(c.UserContext())
 	if err != nil {
+		logger.Logger.Error("Failed to list users", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	logger.Logger.Info("Users listed", zap.Int("count", len(users)))
 	return c.JSON(users)
 }
 
 func (h *UserHandler) GetUserByID(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 	if err != nil {
+		logger.Logger.Warn("Invalid user id", zap.String("id", c.Params("id")), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
 	}
 
 	user, err := h.service.GetUserByID(c.UserContext(), int32(id))
 	if err != nil {
+		logger.Logger.Error("Failed to get user", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	logger.Logger.Info("User fetched", zap.Int32("id", user.ID))
 	return c.JSON(user)
 }
 
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 	if err != nil {
+		logger.Logger.Warn("Invalid user id", zap.String("id", c.Params("id")), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
 	}
 
 	var req createUserRequest
 	if err := c.BodyParser(&req); err != nil {
+		logger.Logger.Warn("Invalid update user request body", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	dob, err := time.Parse("2006-01-02", req.DOB)
 	if err != nil {
+		logger.Logger.Warn("Invalid update user DOB", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "dob must be in YYYY-MM-DD format"})
 	}
 
@@ -91,21 +105,26 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		Dob:  dob,
 	})
 	if err != nil {
+		logger.Logger.Error("Failed to update user", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	logger.Logger.Info("User updated", zap.Int32("id", user.ID))
 	return c.JSON(user)
 }
 
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 32)
 	if err != nil {
+		logger.Logger.Warn("Invalid user id", zap.String("id", c.Params("id")), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
 	}
 
 	if err := h.service.DeleteUser(c.UserContext(), int32(id)); err != nil {
+		logger.Logger.Error("Failed to delete user", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	logger.Logger.Info("User deleted", zap.Int32("id", int32(id)))
 	return c.SendStatus(fiber.StatusNoContent)
 }
