@@ -9,6 +9,7 @@ import (
 	db "github.com/jaypatel/user-age-api/db/sqlc"
 	"github.com/jaypatel/user-age-api/internal/handler"
 	"github.com/jaypatel/user-age-api/internal/logger"
+	"github.com/jaypatel/user-age-api/internal/middleware"
 	"github.com/jaypatel/user-age-api/internal/repository"
 	"github.com/jaypatel/user-age-api/internal/routes"
 	"github.com/jaypatel/user-age-api/internal/service"
@@ -45,6 +46,9 @@ func main() {
 	logger.Logger.Info("Database connected")
 
 	app := fiber.New()
+	app.Use(middleware.RequestID())
+	app.Use(middleware.Logging())
+
 	queries := db.New(database)
 	userRepo := repository.NewUserRepository(queries)
 	userService := service.NewUserService(userRepo)
