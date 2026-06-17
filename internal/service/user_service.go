@@ -54,7 +54,7 @@ func (s *UserService) GetUserByID(
 		ID:   user.ID,
 		Name: user.Name,
 		DOB:  user.Dob.Format("2006-01-02"),
-		Age:  calculateAge(user.Dob),
+		Age:  CalculateAge(user.Dob),
 	}, nil
 }
 
@@ -73,13 +73,13 @@ func (s *UserService) ListUsers(ctx context.Context,
 			ID:   user.ID,
 			Name: user.Name,
 			DOB:  user.Dob.Format("2006-01-02"),
-			Age:  calculateAge(user.Dob),
+			Age:  CalculateAge(user.Dob),
 		})
 	}
 	return response, nil
 }
 
-func calculateAge(dob time.Time) int {
+func CalculateAge(dob time.Time) int {
 	today := time.Now()
 
 	age := today.Year() - dob.Year()
