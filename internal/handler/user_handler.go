@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,6 +36,12 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		logger.Logger.Warn("Invalid create user name")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name is required"})
+	}
+
 	dob, err := time.Parse("2006-01-02", req.DOB)
 	if err != nil {
 		logger.Logger.Warn("Invalid create user DOB", zap.Error(err))
@@ -40,7 +49,7 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	user, err := h.service.CreateUser(c.UserContext(), db.CreateUserParams{
-		Name: req.Name,
+		Name: name,
 		Dob:  dob,
 	})
 	if err != nil {
@@ -72,6 +81,11 @@ func (h *UserHandler) GetUserByID(c *fiber.Ctx) error {
 
 	user, err := h.service.GetUserByID(c.UserContext(), int32(id))
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Logger.Warn("User not found", zap.Int32("id", int32(id)))
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		}
+
 		logger.Logger.Error("Failed to get user", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -93,6 +107,12 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		logger.Logger.Warn("Invalid update user name", zap.Int32("id", int32(id)))
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name is required"})
+	}
+
 	dob, err := time.Parse("2006-01-02", req.DOB)
 	if err != nil {
 		logger.Logger.Warn("Invalid update user DOB", zap.Int32("id", int32(id)), zap.Error(err))
@@ -101,10 +121,15 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 
 	user, err := h.service.UpdateUser(c.UserContext(), db.UpdateUserParams{
 		ID:   int32(id),
-		Name: req.Name,
+		Name: name,
 		Dob:  dob,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Logger.Warn("User not found", zap.Int32("id", int32(id)))
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		}
+
 		logger.Logger.Error("Failed to update user", zap.Int32("id", int32(id)), zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -118,6 +143,16 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	if err != nil {
 		logger.Logger.Warn("Invalid user id", zap.String("id", c.Params("id")), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
+	}
+
+	if _, err := h.service.GetUserByID(c.UserContext(), int32(id)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Logger.Warn("User not found", zap.Int32("id", int32(id)))
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		}
+
+		logger.Logger.Error("Failed to get user before delete", zap.Int32("id", int32(id)), zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	if err := h.service.DeleteUser(c.UserContext(), int32(id)); err != nil {

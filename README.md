@@ -1,6 +1,18 @@
 # user-age-api
 
-A Go REST API for storing users and calculating their age from date of birth. The project uses Fiber, PostgreSQL, sqlc, and a handler/service/repository structure.
+A Go REST API for storing users and calculating their age from date of birth. The project uses Fiber, PostgreSQL, sqlc, Zap logging, request middleware, and a handler/service/repository structure.
+
+## Final Checklist
+
+- Clean folder structure
+- sqlc database queries working
+- CRUD APIs complete
+- Age calculated dynamically from DOB
+- Request validation added
+- Zap logger integrated
+- Request ID and request logging middleware added
+- Proper HTTP status codes
+- README written
 
 ## Setup Steps
 
@@ -63,6 +75,22 @@ Regenerate sqlc code after SQL changes:
 sqlc generate
 ```
 
+## Project Structure
+
+```text
+cmd/server/main.go              # App entrypoint
+db/migrations/                  # Database migrations
+db/queries/                     # sqlc SQL queries
+db/sqlc/                        # Generated sqlc code
+internal/handler/               # HTTP handlers
+internal/logger/                # Zap logger setup
+internal/middleware/            # Request ID and logging middleware
+internal/models/                # Response models
+internal/repository/            # Database access wrapper
+internal/routes/                # Fiber routes
+internal/service/               # Business logic and age calculation
+```
+
 ## Env Variables
 
 Create a `.env` file in the project root.
@@ -93,6 +121,27 @@ For requests with JSON bodies, use:
 Content-Type: application/json
 ```
 
+Every response includes:
+
+```text
+X-Request-ID: <uuid>
+```
+
+Validation rules:
+
+- `name` is required for create and update.
+- `dob` must use `YYYY-MM-DD` format.
+- `id` path params must be valid integers.
+
+Status codes:
+
+- `200 OK` for successful reads and updates
+- `201 Created` for successful create
+- `204 No Content` for successful delete
+- `400 Bad Request` for invalid request body, ID, name, or DOB
+- `404 Not Found` when a user ID does not exist
+- `500 Internal Server Error` for unexpected server/database errors
+
 ### Create User
 
 ```http
@@ -115,6 +164,14 @@ Example response:
   "id": 1,
   "name": "Jay Patel",
   "dob": "2000-05-20T00:00:00Z"
+}
+```
+
+Validation error example:
+
+```json
+{
+  "error": "name is required"
 }
 ```
 
@@ -191,6 +248,20 @@ Expected response:
 204 No Content
 ```
 
+### Not Found Example
+
+```http
+GET /users/999
+```
+
+Example response:
+
+```json
+{
+  "error": "user not found"
+}
+```
+
 ## Common Errors
 
 `DATABASE_URL is required`
@@ -203,4 +274,4 @@ The database URL uses a PostgreSQL username that does not exist locally.
 
 `sql: no rows in result set`
 
-The requested user ID does not exist. Create a user first or use an ID returned by `GET /users`.
+The requested user ID does not exist. The API now returns `404 user not found` for this case.
